@@ -5,7 +5,7 @@ Acercar la astronomía a un público amplio mediante una experiencia visual guia
 ## 🧠 ¿Cómo funciona?
 
 - Un **panel interactivo** permite al usuario seleccionar una constelación del Zodiaco.
-- Un **Arduino** controla dos servomotores que mueven el puntero láser.
+- Un **Arduino** controla un servomotores y un steper que mueven el puntero láser.
 - El sistema apunta con precisión a las estrellas principales de la constelación seleccionada.
 
 ## 🛠️ Tecnologías utilizadas
