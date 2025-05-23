@@ -16,6 +16,7 @@ Acercar la astronomía a un público amplio mediante una experiencia visual guia
 - Proyector o pantalla
 - Control remoto
 - Código en JS y Arduino
+- Impresora 3D
 
 ## 🔌 Requisitos
 
