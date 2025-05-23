@@ -1,6 +1,10 @@
 import express from "express";
-// import datosZodiaco from "./zodiac-boundaries.json" assert { type: "json" };
+import fs from "fs";
+import path from "path";
 
+const datosZodiaco = JSON.parse(
+  fs.readFileSync(path.resolve("zodiac-boundaries.json"), "utf8")
+);
 const PORT = 8080;
 const app = express();
 
@@ -11,17 +15,22 @@ app.get("/", (req, res) => {
   res.send("Hola desde el back de panelistas.");
 });
 
-app.get("/seacrh", (req, res) => {
-  try {
-    const constelacion = req.body;
+app.get("/search", (req, res) => {
+  const datosZodiaco = JSON.parse(
+    fs.readFileSync(path.resolve("zodiac-boundaries.json"), "utf8")
+  );
+  const code = req.query.code?.toLowerCase();
 
-    const info = datosZodiaco.features.find((f) => f.id === constelacion);
-    if (!constelacion || !info) {
-      return res.status(400).json({
-        message: "No se recibieron datos",
-      });
-    }
-  } catch (error) {}
+  if (!code) {
+    return res.status(400).json({
+      message: "No se recibieron datos",
+    });
+  }
+  const info = datosZodiaco.find((f) => f.id === code);
+
+  return res.status(200).send({
+    data: info,
+  });
 });
 
 /*//////////////////////////
