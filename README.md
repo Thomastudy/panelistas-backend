@@ -29,5 +29,5 @@ Acercar la astronomía a un público amplio mediante una experiencia visual guia
 1. Clona este repositorio:
 
    ```bash
-   git clone https://github.com/tu-usuario/panelistas.git
+   git clone https://github.com/Thomastudy/panelistas.git
    cd panelistas
