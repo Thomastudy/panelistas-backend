@@ -21,7 +21,6 @@ coordenadas = [
     {"id": "Tau", "AR": 4.47,  "Dec": 17.99}
 ]
 
-
 def ra_dec_to_alt_az(ra_hours, dec_deg, lat_deg, lon_deg, dt_utc):
     ra_deg = ra_hours * 15
     dec_rad = math.radians(dec_deg)
@@ -42,31 +41,25 @@ def ra_dec_to_alt_az(ra_hours, dec_deg, lat_deg, lon_deg, dt_utc):
         return jd
 
     jd = julian_date(dt_utc)
-    d = jd - 2451545.0  # Days since J2000.0
+    d = jd - 2451545.0 
 
-    # 3. GMST (Greenwich Mean Sidereal Time) in degrees
     gmst = 280.46061837 + 360.98564736629 * d
     gmst = gmst % 360
 
-    # 4. LST (Local Sidereal Time)
     lst = (gmst + lon_deg) % 360
 
-    # 5. Hour Angle in degrees
     ha = (lst - ra_deg) % 360
     if ha > 180:
-        ha -= 360  # Convert to [-180, 180] range
+        ha -= 360 
     ha_rad = math.radians(ha)
 
-    # 6. Compute altitude
     sin_alt = math.sin(dec_rad) * math.sin(lat_rad) + math.cos(dec_rad) * math.cos(lat_rad) * math.cos(ha_rad)
     alt_rad = math.asin(sin_alt)
 
-    # 7. Compute azimuth
     cos_az = (math.sin(dec_rad) - math.sin(alt_rad) * math.sin(lat_rad)) / (math.cos(alt_rad) * math.cos(lat_rad))
     sin_az = -math.cos(dec_rad) * math.sin(ha_rad) / math.cos(alt_rad)
     az_rad = math.atan2(sin_az, cos_az)
 
-    # Convert to degrees and normalize
     alt_deg = math.degrees(alt_rad)
     az_deg = (math.degrees(az_rad) + 360) % 360
 
@@ -79,9 +72,16 @@ def convert_coords():
         data = request.get_json()
         now = datetime.now()
 
-        ra_hours = float(data['ra'])
-        dec_deg = float(data['dec'])
-        lat = -34.967
+        const = str(data['const'])
+
+        for i in range(len(coordenadas)):
+            print(i)
+            if coordenadas[i]['id'] == const:
+                print('sshfskdh')
+                print(coordenadas[i]['AR'], coordenadas[i]['Dec'])
+                ra_hours = coordenadas[i]['AR']
+                dec_deg = coordenadas[i]['Dec']
+        
         lon = -54.950
         lat = -34.967 
         now_utc = datetime.now(timezone.utc)
