@@ -1,7 +1,7 @@
 import express from "express";
 import { localizarConstelacion } from "./components/localizar.js";
 
-const PORT = 8080;
+const PORT = process.env.PORT || 3000;
 const app = express();
 
 // MIDDLEWARE
