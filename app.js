@@ -1,5 +1,5 @@
 import express from "express";
-import { localizarConstelacion } from "./components/localizar.js";
+import { localizarConstelacion } from "./src/components/localizar.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
