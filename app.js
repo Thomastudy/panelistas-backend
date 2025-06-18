@@ -1,11 +1,23 @@
+import http from "http";
 import express from "express";
+import { Server as IOServer } from "socket.io";
+
 import { localizarConstelacion } from "./src/components/localizar.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+const server = http.createServer(app);
 
 // MIDDLEWARE
 app.use(express.json());
+
+const io = new IOServer(server, {
+  cors: { origin: "*" }, // o pon el dominio de tu front
+});
+
+io.on("connection", (socket) => {
+  console.log("🔌 Cliente conectado:", socket.id);
+});
 
 app.get("/", (req, res) => {
   res.send("Hola desde el back de panelistas.");
@@ -49,7 +61,7 @@ app.get("/search", (req, res) => {
     LON_FIJA,
     dateISO
   );
-
+  io.emit("open-constellation", { name: code, position: pos });
   return res.status(200).send({ ...pos });
 });
 
@@ -58,6 +70,6 @@ app.get("/search", (req, res) => {
 Servidor
 
 //////////////////////////*/
-app.listen(PORT, () => {
-  console.log(`Escuchando en el puerto: http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
