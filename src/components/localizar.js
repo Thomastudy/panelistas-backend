@@ -1,65 +1,76 @@
-// components/localizar.js ----------------------------------------------------
-import { julian, sidereal } from "astronomia";
+// src/components/localizar.js
 
 /**
- * Calcula Altitud y Azimut para la constelación «code3».
- *
- * @param {Array<{id:string, AR:number, Dec:number}>} lista
- * @param {string} code3                // p. ej. "ari"
- * @param {number} latDeg  Observador   // latitud  (°)
- * @param {number} lonDeg  Observador   // longitud (°  Este +, Oeste –)
- * @param {string} dateISO = now()      // ISO-8601 UTC
- * @returns {{id:string, altitude:number, azimuth:number}}
+ * Devuelve { az, alt } en grados para la constelación indicada.
+ * - coordenadas: array de { id, AR, Dec }
+ * - code: abreviatura en minúsculas ('ari','tau',…)
+ * - latDeg, lonDeg: posición del observador en grados
+ * - dateISO: string ISO de la fecha/hora en UTC
  */
-export function localizarConstelacion(
-  lista,
-  code3,
-  latDeg,
-  lonDeg,
-  dateISO = new Date().toISOString()
-) {
-  // ── 1. buscar la constelación en la lista
-  const item = lista.find((c) => c.id.toLowerCase() === code3.toLowerCase());
-  if (!item) throw new Error(`Constelación «${code3}» no encontrada`);
+export function localizarConstelacion(coordenadas, code, latDeg, lonDeg, dateISO) {
+  const date = new Date(dateISO);
+  const year  = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const day   = date.getUTCDate();
+  const hourUTC = date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600;
 
-  // ── 2. pasar todo a radianes
-  const lat = (latDeg * Math.PI) / 180;
-  const lon = (lonDeg * Math.PI) / 180; // Oeste negativo
-  const ra = (item.AR * 15 * Math.PI) / 180; // h → ° → rad
-  const dec = (item.Dec * Math.PI) / 180;
+  // 1) Buscamos la constelación
+  const entry = coordenadas.find(c => c.id.toLowerCase() === code.toLowerCase());
+  if (!entry) throw new Error(`Constelación '${code}' no encontrada`);
 
-  // ── 3. calcular JD y hora sideral (GMST) --------------------
-  const d = new Date(dateISO);
-  const jd = julian.CalendarGregorianToJD(
-    d.getUTCFullYear(),
-    d.getUTCMonth() + 1,
-    d.getUTCDate() + (d.getUTCHours() + d.getUTCMinutes() / 60) / 24
-  );
-  // gmst en horas → rad
-  const gmst = sidereal.mean(jd);
+  // 2) Fecha Juliana (JD)
+  const JD = getJulianDate(year, month, day, hourUTC);
 
-  // ── 4. Hora sideral local (LST) y Ángulo horario H
-  let lst = gmst + lon; // rad
-  lst = (lst + 2 * Math.PI) % (2 * Math.PI); // normaliza 0…2π
-  let H = lst - ra; // rad
-  H = ((H + Math.PI) % (2 * Math.PI)) - Math.PI; // –π…π
+  // 3) Tiempo Sideral Local en grados
+  const LST_deg = getLSTdegrees(JD, lonDeg);
 
-  // ── 5. Fórmulas horizontales
-  const sinAlt =
-    Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(lat) * Math.cos(H);
-  const alt = Math.asin(sinAlt);
+  // 4) Transformación ecuatorial→horizontal
+  return equatorialToHorizontal(entry.AR, entry.Dec, latDeg, LST_deg);
+}
 
-  const cosAz =
-    (Math.sin(dec) - Math.sin(alt) * Math.sin(lat)) /
-    (Math.cos(alt) * Math.cos(lat));
-  // prote-rango por redondeo numérico
-  const clamped = Math.min(1, Math.max(-1, cosAz));
-  let az = Math.acos(clamped); // 0…π
-  if (Math.sin(H) > 0) az = 2 * Math.PI - az; // 0…2π, medido desde el Norte
 
-  return {
-    id: item.id.toLowerCase(),
-    az: (az * 180) / Math.PI,
-    alt: (alt * 180) / Math.PI,
-  };
+// ———— Helpers (no toques estas funciones) ————
+
+function deg2rad(deg) { return deg * Math.PI / 180; }
+function rad2deg(rad) { return rad * 180 / Math.PI; }
+function hoursToDegrees(h) { return h * 15; }
+
+// Cálculo de fecha Juliana
+function getJulianDate(y, m, d, hourUTC) {
+  if (m <= 2) { y--; m += 12; }
+  const A = Math.floor(y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716))
+       + Math.floor(30.6001 * (m + 1))
+       + d + B - 1524.5 + hourUTC / 24;
+}
+
+// Cálculo de LST en grados
+function getLSTdegrees(JD, lonDeg) {
+  const D = JD - 2451545.0;
+  let lst = 280.46061837 + 360.98564736629 * D + lonDeg;
+  return ((lst % 360) + 360) % 360;
+}
+
+// Ecuatoriales (RA_h, Dec_deg) → Horizontales (az, alt)
+function equatorialToHorizontal(RA_h, Dec_deg, Lat_deg, LST_deg) {
+  const RA_deg = hoursToDegrees(RA_h);
+  const HA_deg = (LST_deg - RA_deg + 360) % 360;
+  const HA  = deg2rad(HA_deg);
+  const Dec = deg2rad(Dec_deg);
+  const Lat = deg2rad(Lat_deg);
+
+  // alt
+  const sinAlt = Math.sin(Dec)*Math.sin(Lat)
+               + Math.cos(Dec)*Math.cos(Lat)*Math.cos(HA);
+  const alt = rad2deg(Math.asin(sinAlt));
+
+  // az
+  const cosAz = (Math.sin(Dec) - Math.sin(deg2rad(alt))*Math.sin(Lat))
+              / (Math.cos(deg2rad(alt))*Math.cos(Lat));
+  const sinAz = -Math.cos(Dec)*Math.sin(HA)/Math.cos(deg2rad(alt));
+  let az = rad2deg(Math.atan2(sinAz, cosAz));
+  if (az < 0) az += 360;
+
+  return { az, alt };
 }
